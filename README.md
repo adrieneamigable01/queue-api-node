@@ -645,3 +645,5 @@ You can call that function on server.js file when you want drop existing table:
 ```javascript
 db.dropRestApiTable();
 ```
+#   p o s - a p i  
+ 
