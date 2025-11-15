@@ -1,34 +1,63 @@
 /**
  * Created by Christos Ploutarchou
  * Project : node_rest_api_with_mysql
- * Filename : app.js
+ * Filename : server.js
  * Date: 03/04/2020
  * Time: 12:22
  **/
 
 const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const server = express();
 const db = require("./models");
+
+const server = express();
+
+// ✅ CORS settings
 const corsSettings = {
-  originL: "http://localhost:8081"
+  origin: "*", // fixed key name: "origin" (not "originL")
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 };
 
-const api = require("./routes/index");
+// ✅ Apply middleware
 server.use(cors(corsSettings));
-// Parse request of content-type - application/json
 server.use(bodyParser.json());
-// parse requests of content-type -application/x-www-form-urlencoded
 server.use(bodyParser.urlencoded({ extended: true }));
 
-server.use("/", api);
-// set listening ports for request
-const port = process.env.PORT || 80;
-
-server.listen(port, () => {
-  console.log(`Server running on port : ${port}`);
+// ✅ Create HTTP server & attach Socket.IO
+const httpServer = http.createServer(server);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:8081",
+    methods: ["GET", "POST", "PUT", "DELETE"]
+  }
 });
-// Run following function if you want drop existing tables and re-sync database
-// db.dropRestApiTable();
+
+// ✅ Make Socket.IO available to controllers
+server.set("io", io);
+
+// ✅ Socket event listeners
+io.on("connection", (socket) => {
+  console.log(`✅ Socket connected: ${socket.id}`);
+
+  socket.on("disconnect", () => {
+    console.log(`❌ Socket disconnected: ${socket.id}`);
+  });
+});
+
+// ✅ Import routes
+const api = require("./routes/index");
+server.use("/", api);
+
+// ✅ Sequelize sync
 db.databaseConf.sync();
+
+// ✅ Start server
+const PORT = process.env.PORT || 8080;
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Server running on port: ${PORT}`);
+});

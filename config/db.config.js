@@ -8,8 +8,8 @@
 module.exports = {
   HOST: "localhost",
   USER: "root",
-  PASSWORD: "pass",
-  DB: "restapi",
+  PASSWORD: "",
+  DB: "db_pos",
   dialect: "mysql",
   pool: {
     max: 5,
