@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ## How To Build Simple Node.js Rest APIs with Express, Sequelize & MySQL
 
 We’ll be start to build a Node.js Rest API with Express, Sequelize & MySQL. Here we’ll use Sequelize for interacting with the **MySQL** instance.
@@ -647,3 +648,6 @@ db.dropRestApiTable();
 ```
 #   p o s - a p i  
  
+=======
+# queue-api-node
+>>>>>>> d2a4c9bfdb1381da50c8a24bd954c9d6b08ef4ef
