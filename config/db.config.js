@@ -6,7 +6,7 @@
  * Time: 21:32
  **/
 module.exports = {
-  HOST: "localhost",
+  HOST: "h1234567.hostinger.com",
   USER: "u859692781_queque",
   PASSWORD: "Thequck!123",
   DB: "u859692781_queque",
