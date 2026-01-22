@@ -9,7 +9,7 @@ module.exports = {
   HOST: "localhost",
   USER: "u859692781_queque",
   PASSWORD: "Thequck!123",
-  DB: "db_queue",
+  DB: "u859692781_queque",
   dialect: "mysql",
   pool: {
     max: 5,
