@@ -1,15 +1,8 @@
-/**
- * Created by Christos Ploutarchou
- * Project : node_rest_api_with_mysql
- * Filename : db.config.js
- * Date: 03/04/2020
- * Time: 21:32
- **/
 module.exports = {
-  HOST: "h1234567.hostinger.com",
-  USER: "u859692781_queque",
-  PASSWORD: "Thequck!123",
-  DB: "u859692781_queque",
+  HOST: process.env.DB_HOST || "148.222.53.10", // MySQL host
+  USER: process.env.DB_USER || "u859692781_queque",
+  PASSWORD: process.env.DB_PASS || "Thequck!123",
+  DB: process.env.DB_NAME || "u859692781_queque",
   dialect: "mysql",
   pool: {
     max: 5,
