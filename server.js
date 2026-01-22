@@ -1,11 +1,3 @@
-/**
- * Created by Christos Ploutarchou
- * Project : node_rest_api_with_mysql
- * Filename : server.js
- * Date: 03/04/2020
- * Time: 12:22
- **/
-
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -13,51 +5,63 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const db = require("./models");
 
-const server = express();
+const app = express();
 
-// ✅ CORS settings
-const corsSettings = {
-  origin: "*", // fixed key name: "origin" (not "originL")
+/**
+ * ✅ CORS — Flutter Web SAFE
+ */
+app.use(cors({
+  origin: true,          // 🔥 allow ALL origins
   methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-};
+  credentials: false     // 🔥 MUST be false
+}));
 
-// ✅ Apply middleware
-server.use(cors(corsSettings));
-server.use(bodyParser.json());
-server.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// ✅ Create HTTP server & attach Socket.IO
-const httpServer = http.createServer(server);
+/**
+ * ✅ HTTP + SOCKET.IO
+ */
+const httpServer = http.createServer(app);
+
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:8081",
-    methods: ["GET", "POST", "PUT", "DELETE"]
-  }
+    origin: true,
+    methods: ["GET", "POST"]
+  },
+  transports: ["polling", "websocket"], // 🔥 VERY IMPORTANT
+  allowEIO3: true
 });
 
-// ✅ Make Socket.IO available to controllers
-server.set("io", io);
+// Make io accessible in controllers
+app.set("io", io);
 
-// ✅ Socket event listeners
+/**
+ * ✅ SOCKET EVENTS
+ */
 io.on("connection", (socket) => {
-  console.log(`✅ Socket connected: ${socket.id}`);
+  console.log("🟢 Socket connected:", socket.id);
 
   socket.on("disconnect", () => {
-    console.log(`❌ Socket disconnected: ${socket.id}`);
+    console.log("🔴 Socket disconnected:", socket.id);
   });
 });
 
-// ✅ Import routes
-const api = require("./routes/index");
-server.use("/", api);
+/**
+ * ✅ ROUTES
+ */
+const apiRoutes = require("./routes/index");
+app.use("/", apiRoutes);
 
-// ✅ Sequelize sync
+/**
+ * ✅ DB
+ */
 db.databaseConf.sync();
 
-// ✅ Start server
-const PORT = process.env.PORT || 8080;
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port: ${PORT}`);
+/**
+ * ✅ START SERVER
+ */
+const PORT = 8080;
+httpServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });

@@ -24,13 +24,14 @@ exports.login = async (req, res) => {
     // Note: Assuming User, employeeObj (or Employee), bcrypt, jwt, Op, and jwtSecret are imported/defined
     const { username, password } = req.body; 
 
+    console.log(`username : ${username}`);
+
     try {
         // 1. Find the user by searching the input value against EITHER username OR email
         const user = await User.findOne({ 
             where: { 
                 [Op.or]: [
                     { username: username }, 
-                    // { email: username }     // 🚨 RESTORED: Search by email for flexibility
                 ]
             } 
         });
@@ -38,6 +39,8 @@ exports.login = async (req, res) => {
         if (!user) {
             return res.status(201).send({ message: "User not found.",isError:true, });
         }
+
+        console.log(`user_type : ${user.user_type}`);
 
         // 2. Check the password
         const passwordIsValid = bcrypt.compareSync(
@@ -60,7 +63,7 @@ exports.login = async (req, res) => {
         });
         
         // Handle case where user exists but employee record doesn't (shouldn't happen with signup logic)
-        if (!employee) {
+        if (!employee && user.user_type == "Employee") {
             console.error(`Employee record not found for user ID: ${user.user_id}`);
              return res.status(201).send({ message: "Employee record not found for user ID.",isError:true, });
             // Still allow login but warn the client, or deny access if employee status is critical
