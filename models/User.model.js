@@ -20,6 +20,10 @@ module.exports = (database, Sequelize) => {
             type: Sequelize.STRING, // e.g., 'Admin', 'Staff', 'Manager'
             allowNull: false
         },
+        role: {
+            type: Sequelize.STRING, // e.g., 'Admin', 'Staff', 'Manager'
+            allowNull: false
+        },
         created_at: {
             type: Sequelize.DATE,
             defaultValue: Sequelize.NOW
