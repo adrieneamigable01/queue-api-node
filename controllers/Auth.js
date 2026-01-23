@@ -97,6 +97,7 @@ exports.login = async (req, res) => {
                 user_id: user.user_id,
                 username: user.username,
                 user_type: user.user_type,
+                role: user.role,
                 accessToken: token,
                 employee_data: employeeData // Include the full employee data in the response body
             },
