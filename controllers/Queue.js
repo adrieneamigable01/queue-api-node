@@ -177,6 +177,7 @@ exports.createQueue = async (req, res) => {
       queue_number: queueNumber,
       queue_type,
       name,
+      borrower_id,
       purpose,
       date: dateNow,
       status: "WAITING",
