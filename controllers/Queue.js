@@ -37,6 +37,7 @@ exports.getQueuesToday = async (req, res) => {
         q.queue_id, 
         q.queue_number, 
         q.name,
+        q.borrower_id,
         q.purpose,
         q.queue_type, 
         q.date, 
@@ -99,7 +100,7 @@ exports.getQueuesToday = async (req, res) => {
 
 exports.createQueue = async (req, res) => {
   try {
-    const { queue_type, name, purpose } = req.body;
+    const { queue_type, name,borrower_id, purpose } = req.body;
 
     if (!queue_type || !name) {
       return res.status(400).json({
@@ -150,9 +151,9 @@ exports.createQueue = async (req, res) => {
     const [insertId] = await db.databaseConf.query(
       `
       INSERT INTO queue 
-        (queue_number, queue_type, purpose, name, date, is_active)
+        (queue_number, queue_type, purpose, name,borrower_id, date, is_active)
       VALUES 
-        (:queue_number, :queue_type, :purpose, :name, :date, 1)
+        (:queue_number, :queue_type, :purpose, :name,:borrower_id, :date, 1)
       `,
       {
         replacements: {
@@ -160,6 +161,7 @@ exports.createQueue = async (req, res) => {
           queue_type,
           purpose: purpose || "",
           name,
+          borrower_id,
           date: dateNow,
         },
         type: Sequelize.QueryTypes.INSERT,
