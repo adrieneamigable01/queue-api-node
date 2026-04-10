@@ -20,6 +20,7 @@ const verifyToken = require("../middleware/authJwt");
 
 // --- AUTHENTICATION ROUTES ---
 router.post("/api/auth/login", auth.login);
+router.post("/api/auth/kioskLogin", auth.kioskLogin);
 router.post("/api/auth/signup", auth.signup);
 
 // --- POST ROUTES ---
