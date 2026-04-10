@@ -113,6 +113,43 @@ exports.login = async (req, res) => {
     }
 };
 
+exports.kioskLogin = async (req, res) => {
+    // Note: Assuming User, employeeObj (or Employee), bcrypt, jwt, Op, and jwtSecret are imported/defined
+    const { kioskId } = req.body; 
+    if (!kioskId ) {
+        return res.status(400).send({ message: "Missing required fields kioskId." });
+    }
+    try {
+        // 4. Generate a token, including user AND employee data (excluding sensitive fields like password/email from JWT)
+        const token = jwt.sign({ 
+            type: 'kiosk',
+            kiosk_id: kioskId,
+            location: 'Barili Branch',
+        }, jwtSecret, {
+            expiresIn: 86400 // 24 hours
+        });
+
+        // 5. Send success response with token AND all data
+        res.status(200).send({
+           data:{
+                type: 'kiosk',
+                kiosk_id: kioskId,
+                location: 'Barili Branch',
+            },
+            isError:false,
+            message:"Success Login"
+        });
+        
+    } catch (error) {
+        res.status(201).send({ 
+            message: error.message || "An internal server error occurred during login.",
+            isError:true,
+        });
+    }
+};
+
+
+
 
 // controllers/Auth.js (Revised try...catch logic)
 exports.signup = async (req, res) => {
