@@ -135,6 +135,7 @@ exports.kioskLogin = async (req, res) => {
                 type: 'kiosk',
                 kiosk_id: kioskId,
                 location: 'Barili Branch',
+                accessToken: token,
             },
             isError:false,
             message:"Success Login"
