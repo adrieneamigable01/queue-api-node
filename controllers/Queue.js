@@ -432,7 +432,7 @@ const io = req.app.get("io");
       SET status = 'Done', serving_end_time = :time
       WHERE teller_number = :teller
         AND queue_id = :queue
-        AND status != 'Done'
+        AND status != 'Done'd
       `,
       {
         replacements: { teller: teller_number, queue: queue_id, time: timeNow },
@@ -440,12 +440,17 @@ const io = req.app.get("io");
         transaction: t,
       }
     );
+    
 
     await t.commit();
 
     // Emit socket event
     if (io) {
-      io.emit("Queue:updated", { queue_id, teller_number, status: "Done" });
+      // io.emit("Queue:updated", { queue_id, teller_number, status: "Done" });
+       io.emit("Queue:updated", {
+        ...activeServing[0],
+        status: "Done",
+      });
     }
 
     return res.status(200).json({ status: "success", message: "Serving done successfully." });
