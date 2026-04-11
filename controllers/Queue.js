@@ -391,110 +391,142 @@ exports.updateQueueAnnounce = async (req, res) => {
   }
 };
 
-  // Node.js version of your PHP serving-done endpoint
   exports.markServingDone = async (req, res) => {
-    const io = req.app.get("io");
-    const t = await db.databaseConf.transaction();
+  const io = req.app.get("io");
+  const t = await db.databaseConf.transaction();
 
-    try {
-      const { queue_id, teller_number } = req.body;
+  try {
+    const { queue_id, teller_number } = req.body;
 
-      if (!queue_id || !teller_number) {
-        return res.status(400).json({ status: "error", message: "Required parameters are missing." });
-      }
-
-      const timeNow = new Date().toLocaleTimeString("en-PH", { hour12: false });
-
-      // ✅ Get queue details BEFORE updating
-      const queueDetails = await db.databaseConf.query(
-        `
-        SELECT q.*, s.serving_start_time, s.serving_end_time
-        FROM queue q
-        LEFT JOIN serving s ON q.queue_id = s.queue_id AND s.teller_number = :teller
-        WHERE q.queue_id = :queue_id
-        LIMIT 1
-        `,
-        {
-          replacements: { queue_id, teller: teller_number },
-          type: Sequelize.QueryTypes.SELECT,
-          transaction: t,
-        }
-      );
-
-      if (queueDetails.length === 0) {
-        if (!t.finished) await t.rollback();
-        return res.status(404).json({ status: "error", message: "Queue not found." });
-      }
-
-      const activeServing = await db.databaseConf.query(
-        `
-        SELECT *
-        FROM serving
-        WHERE teller_number = :teller
-          AND queue_id = :queue
-          AND status != 'Done'
-        LIMIT 1
-        `,
-        {
-          replacements: { teller: teller_number, queue: queue_id },
-          type: Sequelize.QueryTypes.SELECT,
-          transaction: t,
-        }
-      );
-
-      if (activeServing.length === 0) {
-        if (!t.finished) await t.rollback();
-        return res.status(404).json({ status: "error", message: "This teller is not serving the specified queue." });
-      }
-
-      // ✅ Update serving record
-      await db.databaseConf.query(
-        `
-        UPDATE serving
-        SET status = 'Done', serving_end_time = :time
-        WHERE teller_number = :teller
-          AND queue_id = :queue
-          AND status != 'Done'
-        `,
-        {
-          replacements: { teller: teller_number, queue: queue_id, time: timeNow },
-          type: Sequelize.QueryTypes.UPDATE,
-          transaction: t,
-        }
-      );
-
-      await t.commit();
-
-      // ✅ FIXED: Send FULL queue data + updated serving times
-      const updatedQueue = {
-        ...queueDetails[0], // Full queue data (name, queueNumber, etc.)
-        servingStartTime: activeServing[0]?.serving_start_time || null,
-        servingEndTime: timeNow, // Just updated
-        status: "DONE"
-      };
-
-      // Emit socket event with FULL queue data
-      if (io) {
-        io.emit("Queue:updated", { 
-          queue_id, 
-          teller_number, 
-          status: "Done",
-          queue: updatedQueue // ✅ Full queue object!
-        });
-      }
-
-      return res.status(200).json({ 
-        status: "success", 
-        message: "Serving done successfully.",
-        queue: updatedQueue 
+    if (!queue_id || !teller_number) {
+      return res.status(400).json({ 
+        status: "error", 
+        message: "Required parameters are missing." 
       });
-
-    } catch (err) {
-      if (t && !t.finished) await t.rollback();
-      console.error(err);
-      return res.status(500).json({ status: "error", message: err.message });
     }
-  };
+
+    const timeNow = new Date().toLocaleTimeString("en-PH", { hour12: false });
+
+    // ✅ STEP 1: Get COMPLETE queue details BEFORE updating
+    const queueDetails = await db.databaseConf.query(
+      `
+      SELECT 
+        q.queue_id,
+        q.queue_number,
+        q.queue_type,
+        q.name,
+        q.borrower_id,
+        q.purpose,
+        q.date,
+        q.is_queue_announce,
+        q.is_active,
+        s.teller_number,
+        s.serving_start_time,
+        s.status as serving_status
+      FROM queue q
+      LEFT JOIN serving s ON q.queue_id = s.queue_id AND s.teller_number = :teller_number
+      WHERE q.queue_id = :queue_id
+      LIMIT 1
+      `,
+      {
+        replacements: { queue_id, teller_number },
+        type: Sequelize.QueryTypes.SELECT,
+        transaction: t,
+      }
+    );
+
+    if (queueDetails.length === 0) {
+      if (!t.finished) await t.rollback();
+      return res.status(404).json({ 
+        status: "error", 
+        message: "Queue not found." 
+      });
+    }
+
+    const queueInfo = queueDetails[0];
+
+    // ✅ STEP 2: Verify teller is serving this queue
+    const activeServing = await db.databaseConf.query(
+      `
+      SELECT *
+      FROM serving
+      WHERE teller_number = :teller_number
+        AND queue_id = :queue_id
+        AND status != 'Done'
+      LIMIT 1
+      `,
+      {
+        replacements: { teller_number, queue_id },
+        type: Sequelize.QueryTypes.SELECT,
+        transaction: t,
+      }
+    );
+
+    if (activeServing.length === 0) {
+      if (!t.finished) await t.rollback();
+      return res.status(404).json({ 
+        status: "error", 
+        message: "This teller is not serving the specified queue." 
+      });
+    }
+
+    // ✅ STEP 3: Update serving record
+    await db.databaseConf.query(
+      `
+      UPDATE serving
+      SET status = 'Done', serving_end_time = :time_now
+      WHERE teller_number = :teller_number
+        AND queue_id = :queue_id
+        AND status != 'Done'
+      `,
+      {
+        replacements: { teller_number, queue_id, time_now: timeNow },
+        type: Sequelize.QueryTypes.UPDATE,
+        transaction: t,
+      }
+    );
+
+    await t.commit();
+
+    // ✅ STEP 4: Build COMPLETE queue object for Flutter
+    const updatedQueue = {
+      queue_id: queueInfo.queue_id,
+      queue_number: queueInfo.queue_number,
+      queue_type: queueInfo.queue_type,
+      name: queueInfo.name,                    // ✅ Full name!
+      borrower_id: queueInfo.borrower_id,
+      purpose: queueInfo.purpose,
+      date: queueInfo.date,
+      is_queue_announce: queueInfo.is_queue_announce,
+      is_active: queueInfo.is_active,
+      teller_number: queueInfo.teller_number || teller_number,
+      serving_start_time: activeServing[0].serving_start_time,
+      serving_end_time: timeNow,               // ✅ Just updated
+      status: "DONE"                           // ✅ For Flutter
+    };
+
+    console.log("✅ Sending updated queue:", updatedQueue.name); // Debug
+
+    // ✅ STEP 5: Emit socket with FLAT queue object (Flutter expects flat)
+    if (io) {
+      io.emit("Queue:updated", updatedQueue);  // ✅ FLAT object, not nested!
+    }
+
+    return res.status(200).json({ 
+      status: "success", 
+      message: "Serving done successfully.",
+      queue: updatedQueue 
+    });
+
+  } catch (err) {
+    if (t && !t.finished) await t.rollback();
+    console.error("❌ markServingDone error:", err);
+    return res.status(500).json({ 
+      status: "error", 
+      message: err.message 
+    });
+  }
+};
 
 
 // Node.js version of your PHP isAnnounce update endpoint
